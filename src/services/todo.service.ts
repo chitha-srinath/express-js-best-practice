@@ -1,4 +1,4 @@
-import { Todo } from '@prisma/client';
+import { Prisma, Todo } from '@prisma/client';
 import { TodoRepository } from '../repositories/todo.repository';
 import { CreateTodoData, GetTodosData, UpdateTodoData } from '@/Dtos/todo.dto';
 import { NotFoundError } from '../Utilities/ErrorUtility';
@@ -27,6 +27,7 @@ export class TodoService {
     const { userId, ...todoData } = data;
     return this.todoRepository.insert({
       ...todoData,
+      isActive: true,
       user: {
         connect: {
           id: userId,
@@ -57,15 +58,21 @@ export class TodoService {
 
     const skip = (page - 1) * limit;
 
+    const filterQuery = {
+      userId: userId,
+      ...(search && { title: { contains: search, mode: Prisma.QueryMode.insensitive } }),
+      isActive: true,
+    };
+
     const todos = await this.todoRepository.findAll(
-      { userId: userId, ...(search && { title: { contains: search, mode: 'insensitive' } }) },
+      filterQuery,
       undefined,
       undefined,
       undefined,
       skip,
       limit,
     );
-    const total = await this.todoRepository.count({ userId: userId });
+    const total = await this.todoRepository.count(filterQuery);
     return {
       todos,
       pagination: {
