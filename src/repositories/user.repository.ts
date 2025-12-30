@@ -27,7 +27,7 @@ export class UserRepository extends BaseRepository<
    * @returns The first matching user or null
    */
   async findFirst(where: Prisma.UserWhereInput): Promise<User | null> {
-    return this.getModel().findFirst({ where });
+    return this.model.findFirst({ where });
   }
 
   /**
@@ -38,7 +38,7 @@ export class UserRepository extends BaseRepository<
   async findByEmailWithAccounts(
     email: string,
   ): Promise<(User & { accounts: { password: string | null }[] }) | null> {
-    return this.getModel().findFirst({
+    return this.model.findFirst<User & { accounts: { password: string | null }[] }>({
       where: { email },
       include: {
         accounts: {
@@ -55,7 +55,7 @@ export class UserRepository extends BaseRepository<
    * @returns Created user
    */
   async createUser(data: Prisma.UserCreateInput): Promise<User> {
-    return this.getModel().create({ data });
+    return this.model.create({ data });
   }
 }
 

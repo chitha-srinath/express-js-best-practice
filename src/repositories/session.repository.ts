@@ -28,7 +28,7 @@ export class SessionRepository extends BaseRepository<
    * @returns The first matching session or null
    */
   async findFirst(where: Prisma.SessionWhereInput): Promise<Session | null> {
-    return this.getModel().findFirst({ where });
+    return this.model.findFirst({ where });
   }
 
   /**
@@ -37,7 +37,7 @@ export class SessionRepository extends BaseRepository<
    * @returns Session with user data or null
    */
   async findByTokenWithUser(token: string): Promise<(Session & { user: User }) | null> {
-    return this.getModel().findUnique({
+    return this.model.findUnique({
       where: { token },
       include: { user: true },
     });
@@ -57,11 +57,15 @@ export class SessionRepository extends BaseRepository<
     refreshToken: string,
     expiresAt: Date,
   ): Promise<Session> {
-    return this.getModel().create({
+    return this.model.create({
       data: {
         id: sessionId,
         token: refreshToken,
-        userId,
+        user: {
+          connect: {
+            id: userId,
+          },
+        },
         expiresAt,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -74,7 +78,7 @@ export class SessionRepository extends BaseRepository<
    * @returns Number of deleted sessions
    */
   async deleteExpiredSessions(): Promise<number> {
-    const result = await this.getModel().deleteMany({
+    const result = await this.model.deleteMany({
       where: {
         expiresAt: {
           lt: new Date(),

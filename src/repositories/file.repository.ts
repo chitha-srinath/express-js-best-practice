@@ -1,4 +1,4 @@
-import { File, PrismaClient, Prisma } from '@prisma/client';
+import { File, PrismaClient, Prisma, status } from '@prisma/client';
 import { BaseRepository } from './base.repository';
 
 /**
@@ -49,7 +49,7 @@ export class FileRepository extends BaseRepository<
   async updateStatusByKeyAndBucket(
     key: string,
     bucket: string,
-    status: string,
+    status: status,
     url?: string,
     uploadedAt?: Date,
   ): Promise<File> {

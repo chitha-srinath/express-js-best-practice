@@ -22,14 +22,4 @@ export class PostRepository extends BaseRepository<
   constructor() {
     super((prisma: PrismaClient) => prisma.post);
   }
-
-  /**
-   * Finds posts matching a partial query object.
-   * Provides a convenient way to search posts using partial Post properties.
-   * @param matchQuery Partial query object for filtering posts
-   * @returns Promise resolving to an array of Post objects matching the query
-   */
-  async findbyQuery(matchQuery: Partial<Post>): Promise<Post[]> {
-    return this.findAll(matchQuery as Prisma.PostWhereInput);
-  }
 }

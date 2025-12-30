@@ -29,7 +29,7 @@ export class AccountRepository extends BaseRepository<
    * @returns The first matching account or null
    */
   async findFirst(where: Prisma.AccountWhereInput): Promise<Account | null> {
-    return this.getModel().findFirst({ where });
+    return this.model.findFirst({ where });
   }
 
   /**
@@ -39,7 +39,7 @@ export class AccountRepository extends BaseRepository<
    * @returns Array of matching accounts
    */
   async findByUserAndProvider(userId: string, providerId: string): Promise<Account[]> {
-    return this.getModel().findMany({
+    return this.model.findMany({
       where: {
         userId,
         providerId,
@@ -54,12 +54,12 @@ export class AccountRepository extends BaseRepository<
    * @returns Created account
    */
   async createPasswordAccount(userId: string, hashedPassword: string): Promise<Account> {
-    return this.getModel().create({
+    return this.model.create({
       data: {
         id: randomUUID(),
         accountId: userId,
         providerId: 'credentials',
-        userId,
+        user: { connect: { id: userId } },
         password: hashedPassword,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -80,10 +80,10 @@ export class AccountRepository extends BaseRepository<
     password?: string;
     extraData?: Record<string, unknown>;
   }): Promise<Account> {
-    return this.getModel().create({
+    return this.model.create({
       data: {
         id: randomUUID(),
-        userId,
+        user: { connect: { id: userId } },
         providerId,
         accountId,
         password,
