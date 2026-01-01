@@ -46,7 +46,7 @@ export class UserService {
    * @param id The unique identifier of the user
    * @returns Promise resolving to the User object or null if not found
    */
-  async getuserById(id: number): Promise<User | null> {
+  async getuserById(id: string): Promise<User | null> {
     return this.userRepository.findById(id);
   }
 
@@ -57,12 +57,12 @@ export class UserService {
    * @returns Promise resolving to the updated User object
    * @throws NotFoundError if the user with the given ID is not found
    */
-  async updateuser(id: number, data: UpdateUserData): Promise<User> {
+  async updateuser(id: string, data: UpdateUserData): Promise<User> {
     const user = await this.userRepository.findById(id);
     if (!user) {
       throw new NotFoundError('User not found');
     }
-    return this.userRepository.update({ id: String(id) }, data);
+    return this.userRepository.update({ id }, data);
   }
 
   /**
@@ -71,7 +71,7 @@ export class UserService {
    * @returns Promise resolving to the deleted User object
    * @throws NotFoundError if the user with the given ID is not found
    */
-  async deleteuser(id: number): Promise<User> {
+  async deleteuser(id: string): Promise<User> {
     const user = await this.userRepository.findById(id);
     if (!user) {
       throw new NotFoundError('User not found');

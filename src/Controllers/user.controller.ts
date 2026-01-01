@@ -68,7 +68,7 @@ export class UserController {
   async getuserById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const user = await this.userService.getuserById(Number(id));
+      const user = await this.userService.getuserById(id);
       if (!user) {
         next(new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND));
         return;
@@ -89,7 +89,7 @@ export class UserController {
     try {
       const id = req.params.id;
       const data = req.body;
-      const user = await this.userService.updateuser(Number(id), data);
+      const user = await this.userService.updateuser(id, data);
       ResponseHandler.successResponse(res, user);
     } catch (error) {
       if (PrismaErrorHandler.handlePrismaError(error) instanceof DatabaseError) {
@@ -108,7 +108,7 @@ export class UserController {
   async deleteuser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const id = req.params.id;
-      await this.userService.deleteuser(Number(id));
+      await this.userService.deleteuser(id);
       res.sendStatus(204);
     } catch (error) {
       next(error);
