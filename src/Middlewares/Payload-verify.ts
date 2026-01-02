@@ -10,19 +10,16 @@ export function validatePayload<S extends PayloadSchemaMap>(schemas: S) {
 
       if (schemas.body) {
         const parsed = schemas.body.parse(req.body);
-        req.body = parsed;
         context.body = parsed;
       }
 
       if (schemas.params) {
         const parsed = schemas.params.parse(req.params);
-        req.params = parsed;
         context.params = parsed;
       }
 
       if (schemas.query) {
         const parsed = schemas.query.parse(req.query);
-        req.query = parsed;
         context.query = parsed;
       }
 
