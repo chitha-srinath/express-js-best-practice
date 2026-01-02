@@ -49,9 +49,7 @@ export const requireAuth = async (
     };
 
     // Use AsyncLocalStorage to store user context for this request
-    UserContext.run({ user: userData, session: payload.session }, () => {
-      next();
-    });
+    UserContext.run({ user: userData, session: payload.session }, () => next());
   } catch (error) {
     GlobalErrorHandler.logger.error(
       `Auth middleware error: ${error instanceof Error ? error.message : 'Unknown error'}`,

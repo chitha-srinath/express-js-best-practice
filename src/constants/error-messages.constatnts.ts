@@ -17,7 +17,7 @@ export const ErrorMessages = {
    * Error messages for user-related operations.
    */
   USER: {
-    USER_NOT_FOUND: 'User not found',
+    USER_NOT_FOUND: 'User not found in context',
     USER_CREATION_FAILED: 'User creation failed',
     USER_UPDATE_FAILED: 'User update failed',
     USER_DELETE_FAILED: 'User delete failed',
