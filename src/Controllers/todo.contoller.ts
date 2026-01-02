@@ -5,7 +5,7 @@ import { PrismaErrorHandler } from '../Utilities/databaseErrors';
 import { ErrorMessages } from '../constants/error-messages.constatnts';
 import { SuccessMessages } from '../constants/success-messages.constants';
 import { TodoService } from '../services/todo.service';
-import { UserContext } from '@/Utilities/user-context';
+import { RequestContext, UserContext } from '@/Utilities/user-context';
 import { CreateTodoData, GetTodosData, UpdateTodoData } from '@/Dtos/todo.dto';
 
 /**
@@ -31,14 +31,11 @@ export class TodoController {
    */
   async createTodo(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = UserContext.getUser()?.id;
-      if (!userId) {
-        throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
-      }
-      const payload: CreateTodoData = {
-        ...req.body,
-        userId,
-      };
+      const payload = this.getPayloadFromContext<
+        Omit<CreateTodoData, 'userId'>,
+        unknown,
+        unknown
+      >();
       const todo = await this.todoService.createTodo(payload);
       ResponseHandler.successResponse(res, todo, SuccessMessages.TODO.CREATED, 201);
     } catch (error) {
@@ -57,14 +54,12 @@ export class TodoController {
    */
   async getAllTodos(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = UserContext.getUser()?.id;
-      if (!userId) {
-        throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
-      }
-      const payload: GetTodosData = {
-        ...req.body,
-        userId,
-      };
+      const payload = this.getPayloadFromContext<
+        Omit<GetTodosData, 'userId'>,
+        unknown,
+        unknown
+      >() as GetTodosData;
+
       const todos = await this.todoService.getAllTodos(payload);
       ResponseHandler.successResponse(res, todos);
     } catch (error) {
@@ -101,14 +96,11 @@ export class TodoController {
   async updateTodo(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const id = req.params.id;
-      const userId = UserContext.getUser()?.id;
-      if (!userId) {
-        throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
-      }
-      const payload: UpdateTodoData = {
-        ...req.body,
-        userId,
-      };
+      const payload = this.getPayloadFromContext<
+        Omit<UpdateTodoData, 'userId'>,
+        unknown,
+        unknown
+      >();
       const todo = await this.todoService.updateTodo(id, payload);
       ResponseHandler.successResponse(res, todo);
     } catch (error) {
@@ -140,5 +132,25 @@ export class TodoController {
     } catch (error) {
       next(error);
     }
+  }
+  /**
+   * Helper to extract and merge payload from contexts
+   */
+  private getPayloadFromContext<T, P, Q>(): T & { userId: string } {
+    const userId = UserContext.getUser()?.id;
+    if (!userId) {
+      throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
+    }
+
+    const body = RequestContext.getBody<T>();
+    const params = RequestContext.getParams<P>();
+    const query = RequestContext.getQuery<Q>();
+
+    return {
+      ...(body ?? {}),
+      ...(params ?? {}),
+      ...(query ?? {}),
+      userId,
+    } as unknown as T & { userId: string };
   }
 }

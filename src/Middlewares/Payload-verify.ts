@@ -1,35 +1,37 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
+import z from 'zod/v4';
 import { PayloadError } from '../Utilities/ErrorUtility';
+import { PayloadSchemaMap, RequestContext, RequestContextData } from '../Utilities/user-context';
 
-/**
- * Type definition for request validation targets.
- * Specifies which part of the request to validate.
- */
-type ValidationType = 'body' | 'query' | 'params';
-
-/**
- * Middleware factory that creates a validation middleware using Zod schema.
- * Validates request data against a provided schema and handles validation errors.
- * @param schema Zod schema for validation
- * @param type The part of the request to validate (body, query, or params)
- * @returns Express middleware function that validates the request
- */
-export function validatePayload<T>(schema: ZodSchema<T>, type: ValidationType = 'body') {
+export function validatePayload<S extends PayloadSchemaMap>(schemas: S) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     try {
-      schema.parse(req[type]);
-      next();
-    } catch (error) {
-      if (error instanceof ZodError) {
-        const issue = error.issues[0];
-        next(
-          new PayloadError(
-            `${issue?.message !== 'Invalid input' ? issue?.message : 'Payload Validation failed'}`,
-          ),
-        );
+      const context = {} as RequestContextData<unknown, unknown, unknown>;
+
+      if (schemas.body) {
+        const parsed = schemas.body.parse(req.body);
+        req.body = parsed;
+        context.body = parsed;
+      }
+
+      if (schemas.params) {
+        const parsed = schemas.params.parse(req.params);
+        req.params = parsed;
+        context.params = parsed;
+      }
+
+      if (schemas.query) {
+        const parsed = schemas.query.parse(req.query);
+        req.query = parsed;
+        context.query = parsed;
+      }
+
+      RequestContext.run(context, next);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        next(new PayloadError(err.issues[0]?.message ?? 'Payload validation failed'));
       } else {
-        next(error);
+        next(err);
       }
     }
   };

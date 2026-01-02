@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { TodoController } from '../Controllers/todo.contoller';
 import { validatePayload } from '../middlewares/Payload-verify';
 import { createTodoDto, getTodosDto } from '../Dtos/todo.dto';
-import { PayLoadType } from '../Enums/payload.enum';
+
 /**
  * Router for todo-related endpoints.
  * Handles todo CRUD operations for task management.
@@ -27,12 +27,13 @@ export class TodoRoutes {
   private initializeRoutes(): void {
     this.router.post(
       '/',
-      validatePayload(createTodoDto, PayLoadType.BODY),
+      validatePayload({ body: createTodoDto }),
       this.todoController.createTodo.bind(this.todoController),
     );
+
     this.router.post(
       '/get-todos',
-      validatePayload(getTodosDto, PayLoadType.BODY),
+      validatePayload({ body: getTodosDto }),
       this.todoController.getAllTodos.bind(this.todoController),
     );
     this.router.get('/:id', this.todoController.getTodoById.bind(this.todoController));
