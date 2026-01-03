@@ -1,8 +1,8 @@
 import { requireAuth } from '../middlewares/Authentication';
 import { AuthController } from '../Controllers/auth.controller';
 import { Router } from 'express';
+import { Router } from 'express';
 import { LoginDto, RegisterDto } from '@/Dtos/auth.dto';
-import { PayLoadType } from '@/Enums/payload.enum';
 import { validatePayload } from '@/middlewares/Payload-verify';
 
 /**
@@ -29,12 +29,12 @@ export class AuthRoutes {
   private initializeRoutes(): void {
     this.router.post(
       '/login',
-      validatePayload(LoginDto, PayLoadType.BODY),
+      validatePayload({ body: LoginDto }),
       this.authController.login.bind(this.authController),
     );
     this.router.post(
       '/register',
-      validatePayload(RegisterDto, PayLoadType.BODY),
+      validatePayload({ body: RegisterDto }),
       this.authController.register.bind(this.authController),
     );
     this.router.get(

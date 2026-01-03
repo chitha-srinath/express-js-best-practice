@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { TodoController } from '../Controllers/todo.contoller';
-import { validatePayload } from '../middlewares/Payload-verify';
-import { createTodoDto, getTodosDto } from '../Dtos/todo.dto';
+import { createTodoDto, deleteTodoDto, getTodosDto, updateTodoDto } from '../Dtos/todo.dto';
+import { validatePayload } from '@/middlewares/Payload-verify';
 
 /**
  * Router for todo-related endpoints.
@@ -36,9 +36,20 @@ export class TodoRoutes {
       validatePayload({ body: getTodosDto }),
       this.todoController.getAllTodos.bind(this.todoController),
     );
+
     this.router.get('/:id', this.todoController.getTodoById.bind(this.todoController));
-    this.router.put('/:id', this.todoController.updateTodo.bind(this.todoController));
-    this.router.delete('/:id', this.todoController.deleteTodo.bind(this.todoController));
+
+    this.router.put(
+      '/:id',
+      validatePayload({ body: updateTodoDto, params: deleteTodoDto }),
+      this.todoController.updateTodo.bind(this.todoController),
+    );
+
+    this.router.delete(
+      '/:id',
+      validatePayload({ params: deleteTodoDto }),
+      this.todoController.deleteTodo.bind(this.todoController),
+    );
   }
 
   /**

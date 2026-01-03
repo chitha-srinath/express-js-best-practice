@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { StorageController } from '../Controllers/storage.controller';
 import { validatePayload } from '../middlewares/Payload-verify';
-import { PayLoadType } from '../Enums/payload.enum';
 import {
   GenerateUploadUrlDto,
   InitiateMultipartUploadDto,
@@ -21,7 +20,7 @@ const storageController = new StorageController();
  */
 router.post(
   '/upload-url',
-  validatePayload(GenerateUploadUrlDto, PayLoadType.BODY),
+  validatePayload({ body: GenerateUploadUrlDto }),
   storageController.generateUploadUrl,
 );
 
@@ -32,7 +31,7 @@ router.post(
  */
 router.post(
   '/multiple-upload-urls',
-  validatePayload(GenerateMultipleUploadUrlsDto, PayLoadType.BODY),
+  validatePayload({ body: GenerateMultipleUploadUrlsDto }),
   storageController.generateMultipleUploadUrls,
 );
 
@@ -43,7 +42,7 @@ router.post(
  */
 router.post(
   '/multipart/initiate',
-  validatePayload(InitiateMultipartUploadDto, PayLoadType.BODY),
+  validatePayload({ body: InitiateMultipartUploadDto }),
   storageController.initiateMultipartUpload,
 );
 
@@ -54,7 +53,7 @@ router.post(
  */
 router.post(
   '/multipart/initiate-multiple',
-  validatePayload(InitiateMultipleMultipartUploadsDto, PayLoadType.BODY),
+  validatePayload({ body: InitiateMultipleMultipartUploadsDto }),
   storageController.initiateMultipleMultipartUploads,
 );
 
@@ -65,7 +64,7 @@ router.post(
  */
 router.post(
   '/multipart/upload-part-url',
-  validatePayload(UploadPartUrlDto, PayLoadType.BODY),
+  validatePayload({ body: UploadPartUrlDto }),
   storageController.generateUploadPartUrl,
 );
 
@@ -76,7 +75,7 @@ router.post(
  */
 router.post(
   '/multipart/complete',
-  validatePayload(CompleteMultipartUploadDto, PayLoadType.BODY),
+  validatePayload({ body: CompleteMultipartUploadDto }),
   storageController.completeMultipartUpload,
 );
 

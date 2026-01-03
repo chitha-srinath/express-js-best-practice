@@ -6,7 +6,7 @@ import { ErrorMessages } from '../constants/error-messages.constatnts';
 import { SuccessMessages } from '../constants/success-messages.constants';
 import { TodoService } from '../services/todo.service';
 import { RequestContext, UserContext } from '@/Utilities/user-context';
-import { CreateTodoData, GetTodosData, UpdateTodoData } from '@/Dtos/todo.dto';
+import { CreateTodoData, GetTodosData, UpdateTodoData, DeleteTodoData } from '@/Dtos/todo.dto';
 
 /**
  * Controller for todo-related endpoints.
@@ -95,13 +95,8 @@ export class TodoController {
    */
   async updateTodo(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = req.params.id;
-      const payload = this.getPayloadFromContext<
-        Omit<UpdateTodoData, 'userId'>,
-        unknown,
-        unknown
-      >();
-      const todo = await this.todoService.updateTodo(id, payload);
+      const payload = this.getPayloadFromContext<UpdateTodoData, DeleteTodoData, unknown>();
+      const todo = await this.todoService.updateTodo(payload);
       ResponseHandler.successResponse(res, todo);
     } catch (error) {
       if (PrismaErrorHandler.handlePrismaError(error) instanceof DatabaseError) {
@@ -119,15 +114,8 @@ export class TodoController {
    */
   async deleteTodo(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = req.params.id;
-      const userId = UserContext.getUser()?.id;
-      if (!userId) {
-        throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
-      }
-      const payload: UpdateTodoData = {
-        userId,
-      };
-      await this.todoService.deleteTodo(id, payload);
+      const payload = this.getPayloadFromContext<unknown, DeleteTodoData, unknown>();
+      await this.todoService.deleteTodo(payload);
       res.sendStatus(204);
     } catch (error) {
       next(error);
@@ -136,7 +124,7 @@ export class TodoController {
   /**
    * Helper to extract and merge payload from contexts
    */
-  private getPayloadFromContext<T, P, Q>(): T & { userId: string } {
+  private getPayloadFromContext<T, P, Q>(): T & P & Q & { userId: string } {
     const userId = UserContext.getUser()?.id;
     if (!userId) {
       throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
@@ -151,6 +139,6 @@ export class TodoController {
       ...(params ?? {}),
       ...(query ?? {}),
       userId,
-    } as unknown as T & { userId: string };
+    } as unknown as T & P & Q & { userId: string };
   }
 }

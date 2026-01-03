@@ -15,6 +15,8 @@ import { ResponseHandler } from '../Utilities/ResponseHandler';
 import { DatabaseError, NotFoundError } from '../Utilities/ErrorUtility';
 import { PrismaErrorHandler } from '../Utilities/databaseErrors';
 import { env } from '../config/config';
+import { RequestContext, UserContext } from '@/Utilities/user-context';
+import { ErrorMessages } from '@/constants/error-messages.constatnts';
 
 export class StorageController {
   private storageService: S3StorageService;
@@ -377,4 +379,22 @@ export class StorageController {
       next(error);
     }
   };
+
+  private getPayloadFromContext<T, P, Q>(): T & { userId: string } {
+    const userId = UserContext.getUser()?.id;
+    if (!userId) {
+      throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
+    }
+
+    const body = RequestContext.getBody<T>();
+    const params = RequestContext.getParams<P>();
+    const query = RequestContext.getQuery<Q>();
+
+    return {
+      ...(body ?? {}),
+      ...(params ?? {}),
+      ...(query ?? {}),
+      userId,
+    } as unknown as T & { userId: string };
+  }
 }

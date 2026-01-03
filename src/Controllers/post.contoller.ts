@@ -6,7 +6,7 @@ import { PostService } from '../services/post.service';
 import { SuccessMessages } from '../constants/success-messages.constants';
 import { ErrorMessages } from '../constants/error-messages.constatnts';
 import { CreatePostData } from '../Dtos/post.dto';
-import { UserContext } from '@/Utilities/user-context';
+import { RequestContext, UserContext } from '@/Utilities/user-context';
 
 /**
  * Controller for post-related endpoints.
@@ -118,5 +118,23 @@ export class PostController {
     } catch (error) {
       next(error);
     }
+  }
+
+  private getPayloadFromContext<T, P, Q>(): T & { userId: string } {
+    const userId = UserContext.getUser()?.id;
+    if (!userId) {
+      throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
+    }
+
+    const body = RequestContext.getBody<T>();
+    const params = RequestContext.getParams<P>();
+    const query = RequestContext.getQuery<Q>();
+
+    return {
+      ...(body ?? {}),
+      ...(params ?? {}),
+      ...(query ?? {}),
+      userId,
+    } as unknown as T & { userId: string };
   }
 }

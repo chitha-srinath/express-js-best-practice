@@ -1,8 +1,7 @@
 import { Router } from 'express';
 import { UserController } from '../Controllers/user.controller';
-import { validatePayload } from '../middlewares/Payload-verify';
 import { createUserDto } from '../Dtos/user.dto';
-import { PayLoadType } from '../Enums/payload.enum';
+import { validatePayload } from '../middlewares/Payload-verify';
 import { requireAuth } from '@/middlewares/Authentication';
 
 /**
@@ -29,7 +28,7 @@ export class UserRoutes {
   private initializeRoutes(): void {
     this.router.post(
       '/',
-      validatePayload(createUserDto, PayLoadType.BODY),
+      validatePayload({ body: createUserDto }),
       this.userController.createuser.bind(this.userController),
     );
     this.router.get('/', this.userController.getAllusers.bind(this.userController));

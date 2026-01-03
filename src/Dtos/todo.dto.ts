@@ -61,8 +61,9 @@ export const getTodosDto = union([pageSchema, cursorSchema]);
  * Zod schema for todo deletion validation.
  */
 export const deleteTodoDto = object({
-  todoId: uuid({
+  id: uuid({
     message: 'Invalid todo ID format',
+    version: 'v7',
   }),
 }).strict();
 

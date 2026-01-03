@@ -1,6 +1,6 @@
 import { Prisma, Todo } from '@prisma/client';
 import { TodoRepository } from '../repositories/todo.repository';
-import { CreateTodoData, GetTodosData, UpdateTodoData } from '@/Dtos/todo.dto';
+import { CreateTodoData, DeleteTodoData, GetTodosData, UpdateTodoData } from '@/Dtos/todo.dto';
 import { NotFoundError } from '../Utilities/ErrorUtility';
 
 /**
@@ -100,12 +100,13 @@ export class TodoService {
    * @returns Promise resolving to the updated Todo object
    * @throws NotFoundError if the todo item with the given ID is not found
    */
-  async updateTodo(id: string, data: UpdateTodoData): Promise<Todo> {
-    const todo = await this.todoRepository.findById(id);
+  async updateTodo(data: UpdateTodoData & DeleteTodoData): Promise<Todo> {
+    const { id, userId, ...updatedData } = data;
+    const todo = await this.todoRepository.findUnique({ id, userId });
     if (!todo) {
       throw new NotFoundError('Todo not found');
     }
-    return this.todoRepository.update({ id }, data);
+    return this.todoRepository.update({ id, userId }, updatedData);
   }
 
   /**
@@ -114,12 +115,12 @@ export class TodoService {
    * @returns Promise resolving to the deleted Todo object
    * @throws NotFoundError if the todo item with the given ID is not found
    */
-  async deleteTodo(id: string, data: UpdateTodoData): Promise<Todo> {
-    const todo = await this.todoRepository.findUnique({ id, userId: data.userId });
+  async deleteTodo(data: DeleteTodoData): Promise<Todo> {
+    const todo = await this.todoRepository.findUnique({ id: data.id, userId: data.userId });
 
     if (!todo) {
       throw new NotFoundError('Todo not found');
     }
-    return this.todoRepository.delete(id);
+    return this.todoRepository.deleteUnique({ id: data.id, userId: data.userId });
   }
 }

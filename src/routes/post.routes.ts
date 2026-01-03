@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { PostController } from '../Controllers/post.contoller';
 import { validatePayload } from '../middlewares/Payload-verify';
 import { createPostDto, getPostsDto } from '../Dtos/post.dto';
-import { PayLoadType } from '../Enums/payload.enum';
 
 /**
  * Router for post-related endpoints.
@@ -28,12 +27,12 @@ export class PostRoutes {
   private initializeRoutes(): void {
     this.router.post(
       '/',
-      validatePayload(createPostDto, PayLoadType.BODY),
+      validatePayload({ body: createPostDto }),
       this.postController.createpost.bind(this.postController),
     );
     this.router.post(
       '/get-posts',
-      validatePayload(getPostsDto, PayLoadType.BODY),
+      validatePayload({ body: getPostsDto }),
       this.postController.getAllposts.bind(this.postController),
     );
     this.router.get('/:id', this.postController.getpostById.bind(this.postController));
