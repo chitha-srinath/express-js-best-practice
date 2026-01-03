@@ -4,7 +4,7 @@ import { PostRoutes } from './post.routes';
 import { UserRoutes } from './user.routes';
 import { AuthRoutes } from './auth.routes';
 import StorageRoutes from './storage.routes';
-import { requireAuth } from '../middlewares/Authentication';
+import { requireAuth } from '../Middlewares/Authentication';
 
 /**
  * Main application router that combines all feature-specific routes.

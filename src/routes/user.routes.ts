@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { UserController } from '../Controllers/user.controller';
 import { createUserDto } from '../Dtos/user.dto';
-import { validatePayload } from '../middlewares/Payload-verify';
-import { requireAuth } from '@/middlewares/Authentication';
+import { validatePayload } from '../Middlewares/Payload-verify';
+import { requireAuth } from '@/Middlewares/Authentication';
 
 /**
  * Router for user-related endpoints.

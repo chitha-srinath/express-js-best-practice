@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PostController } from '../Controllers/post.contoller';
-import { validatePayload } from '../middlewares/Payload-verify';
+import { validatePayload } from '../Middlewares/Payload-verify';
 import { createPostDto, getPostsDto } from '../Dtos/post.dto';
 
 /**

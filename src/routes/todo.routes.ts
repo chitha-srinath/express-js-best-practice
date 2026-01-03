@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { TodoController } from '../Controllers/todo.contoller';
 import { createTodoDto, deleteTodoDto, getTodosDto, updateTodoDto } from '../Dtos/todo.dto';
-import { validatePayload } from '@/middlewares/Payload-verify';
+import { validatePayload } from '../Middlewares/Payload-verify';
 
 /**
  * Router for todo-related endpoints.

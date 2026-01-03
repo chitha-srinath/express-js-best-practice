@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { StorageController } from '../Controllers/storage.controller';
-import { validatePayload } from '../middlewares/Payload-verify';
+import { validatePayload } from '../Middlewares/Payload-verify';
 import {
   GenerateUploadUrlDto,
   InitiateMultipartUploadDto,

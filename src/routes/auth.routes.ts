@@ -1,8 +1,8 @@
-import { requireAuth } from '../middlewares/Authentication';
+import { requireAuth } from '../Middlewares/Authentication';
 import { AuthController } from '../Controllers/auth.controller';
 import { Router } from 'express';
 import { LoginDto, RegisterDto } from '@/Dtos/auth.dto';
-import { validatePayload } from '@/middlewares/Payload-verify';
+import { validatePayload } from '@/Middlewares/Payload-verify';
 
 /**
  * Router for authentication-related endpoints.
