@@ -11,7 +11,7 @@ import { env } from '../config/config';
 import { generateJwtToken } from '../Utilities/encrypt-hash';
 import { randomUUID } from 'node:crypto';
 import { RefreshToken } from '../constants/regular.constants';
-import { UserContext } from '../Utilities/user-context';
+import { RequestContext, UserContext } from '../Utilities/user-context';
 import { ErrorMessages } from '@/constants/error-messages.constatnts';
 import { SessionRepository } from '../repositories/session.repository';
 
@@ -44,7 +44,8 @@ export class AuthController {
    */
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.authService.signIn(req.body as unknown as LoginPostDto);
+      const payload = this.getPayloadFromContext<LoginPostDto, unknown, unknown>();
+      const result = await this.authService.signIn(payload);
 
       //Set refresh token in secure cookie
       res.cookie(RefreshToken, result.refreshToken, {
@@ -77,7 +78,8 @@ export class AuthController {
    */
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.authService.signUp(req.body as unknown as RegisterPostDto);
+      const payload = this.getPayloadFromContext<RegisterPostDto, unknown, unknown>();
+      const result = await this.authService.signUp(payload);
       ResponseHandler.successResponse(res, result);
     } catch (error) {
       next(error);
@@ -281,5 +283,19 @@ export class AuthController {
     } catch (error) {
       next(error);
     }
+  }
+
+  private getPayloadFromContext<T, P, Q>(): T & { userId: string } {
+    const userId = UserContext.getUser()?.id;
+    const body = RequestContext.getBody<T>();
+    const params = RequestContext.getParams<P>();
+    const query = RequestContext.getQuery<Q>();
+
+    return {
+      ...(body ?? {}),
+      ...(params ?? {}),
+      ...(query ?? {}),
+      ...(userId ? { userId } : {}),
+    } as unknown as T & { userId: string };
   }
 }
