@@ -7,125 +7,206 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Todo {
-  id   String @id @default(uuid(7))
-  title       String
-  description String?
-  completed   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  isActive    Boolean  @default(false)
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String
-}
-
-model Post {
-  id   String @id @default(uuid(7))
-  title       String
-  description String?
-  completed   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  isActive    Boolean  @default(false)
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String
-}
-
+/* =======================
+   USER
+======================= */
 model User {
-  id   String @id @default(uuid(7))
+  id            String         @id @default(uuid(7))
   name          String
-  email         String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  isActive      Boolean   @default(false)
+  email         String         @unique
   emailVerified Boolean?
   image         String?
+  isActive      Boolean        @default(true)
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
   sessions      Session[]
   accounts      Account[]
   todos         Todo[]
   posts         Post[]
+  verifications Verification[]
 
+  @@index([isActive])
   @@map("user")
 }
 
-model Log {
-  id   String @id @default(uuid(7))
-  level     String
-  message   String
-  timestamp DateTime @default(now())
+/* =======================
+   TODO
+======================= */
+model Todo {
+  id          String   @id @default(uuid(7))
+  title       String
+  description String?
+  completed   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([completed])
+  @@index([userId, completed])
 }
 
+/* =======================
+   POST
+======================= */
+model Post {
+  id          String   @id @default(uuid(7))
+  title       String
+  description String?
+  completed   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([completed])
+  @@index([userId, completed])
+}
+
+/* =======================
+   SESSION
+======================= */
 model Session {
-  id   String @id @default(uuid(7))
+  id        String    @id @default(uuid(7))
+  token     String    @unique
   expiresAt DateTime?
-  token     String?
-  createdAt DateTime
-  updatedAt DateTime
+
   ipAddress String?
   userAgent String?
+
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([expiresAt])
   @@map("session")
 }
 
+/* =======================
+   ACCOUNT (OAuth / Local)
+======================= */
 model Account {
-  id   String @id @default(uuid(7))
-  accountId             String
+  id                    String    @id @default(uuid(7))
   providerId            String
+  accountId             String
+
   userId                String
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   accessToken           String?
   refreshToken          String?
   idToken               String?
+
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
+
   scope                 String?
   password              String?
-  createdAt             DateTime
-  updatedAt             DateTime
 
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
   @@map("account")
 }
 
-model Verification {
-  id   String @id @default(uuid(7))
-  identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime?
-  updatedAt  DateTime?
+/* =======================
+   VERIFICATION
+======================= */
+enum VerificationType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
 
+model Verification {
+  id         String           @id @default(uuid(7))
+  type       VerificationType
+
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  identifier String           // email / phone / username
+  value      String           // hashed token
+  expiresAt  DateTime
+
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([userId, type])
+  @@index([identifier, type])
+  @@index([expiresAt])
   @@map("verification")
 }
 
+/* =======================
+   LOGS
+======================= */
+model Log {
+  id        String   @id @default(uuid(7))
+  level     String
+  message   String
+
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([level])
+  @@index([timestamp])
+}
+
+/* =======================
+   JWKS (KEY ROTATION)
+======================= */
 model Jwks {
   id         String   @id @default(uuid(7))
   publicKey  String
   privateKey String
-  createdAt  DateTime
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
-enum status {
+/* =======================
+   FILE UPLOADS
+======================= */
+enum FileStatus {
   pending
   completed
   failed
 }
 
 model File {
-  id         String    @id @default(uuid(7))
+  id         String     @id @default(uuid(7))
   name       String
   size       Int?
   mimeType   String?
-  key        String // S3 key
-  bucket     String // S3 bucket
+
+  key        String
+  bucket     String
   url        String?
-  status     status // pending, completed, failed
+
+  status     FileStatus
   uploadedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   @@unique([key, bucket])
+  @@index([status])
+  @@index([createdAt])
   @@map("file")
 }
