@@ -1,6 +1,6 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
-import { GlobalErrorHandler } from './src/middlewares/GlobalErrorHandler';
+import { GlobalErrorHandler } from './src/Middlewares/GlobalErrorHandler';
 import { NotFoundError } from './src/Utilities/ErrorUtility';
 import helmet from 'helmet';
 import indexRoutes from './src/routes/index.routes';

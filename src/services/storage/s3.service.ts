@@ -382,6 +382,6 @@ export class S3StorageService {
 
     // Update file record in database with progress information
     // Note: In a real implementation, you might want to store progress in a separate table
-    await this.fileRepository.updateStatusByKeyAndBucket(key, bucket, 'uploading');
+    await this.fileRepository.updateStatusByKeyAndBucket(key, bucket, 'pending');
   }
 }

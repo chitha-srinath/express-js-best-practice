@@ -1,11 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
-import { GlobalErrorHandler } from './GlobalErrorHandler';
 import { UserDetails } from '../interface/user.interface';
 import { UnauthorizedError } from '../Utilities/ErrorUtility';
 import { verifyJwtToken } from '../Utilities/encrypt-hash';
 import { ErrorMessages } from '../constants/error-messages.constatnts';
 import { ResponseHandler } from '../Utilities/ResponseHandler';
 import { UserContext } from '../Utilities/user-context';
+import { GlobalErrorHandler } from './GlobalErrorHandler';
 
 /**
  * Middleware that validates JWT authentication tokens.
