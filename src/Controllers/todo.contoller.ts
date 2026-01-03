@@ -75,12 +75,8 @@ export class TodoController {
    */
   async getTodoById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
-      const todo = await this.todoService.getTodoById(id);
-      if (!todo) {
-        next(new NotFoundError(ErrorMessages.TODO.TODO_NOT_FOUND));
-        return;
-      }
+      const payload = this.getPayloadFromContext<unknown, DeleteTodoData, unknown>();
+      const todo = await this.todoService.getTodoById(payload);
       ResponseHandler.successResponse(res, todo);
     } catch (error) {
       next(error);

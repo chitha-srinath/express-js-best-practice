@@ -89,8 +89,12 @@ export class TodoService {
    * @param id The unique identifier of the todo item
    * @returns Promise resolving to the Todo object or null if not found
    */
-  async getTodoById(id: string): Promise<Todo | null> {
-    return this.todoRepository.findById(id);
+  async getTodoById(data: DeleteTodoData): Promise<Todo> {
+    const todo = await this.todoRepository.findUnique({ id: data.id, userId: data.userId });
+    if (!todo) {
+      throw new NotFoundError('Todo not found');
+    }
+    return todo;
   }
 
   /**
