@@ -11,9 +11,10 @@ import { env } from '../config/config';
 import { generateJwtToken } from '../Utilities/encrypt-hash';
 import { randomUUID } from 'node:crypto';
 import { RefreshToken } from '../constants/regular.constants';
-import { RequestContext, UserContext } from '../Utilities/user-context';
+import { UserContext } from '../Utilities/user-context';
 import { ErrorMessages } from '@/constants/error-messages.constatnts';
 import { SessionRepository } from '../repositories/session.repository';
+import { getPublicPayloadFromContext } from '@/Utilities/payload';
 
 // import { randomUUID } from 'crypto';
 
@@ -42,9 +43,9 @@ export class AuthController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async login(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async login(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const payload = this.getPayloadFromContext<LoginPostDto, unknown, unknown>();
+      const payload = getPublicPayloadFromContext<LoginPostDto, unknown, unknown>();
       const result = await this.authService.signIn(payload);
 
       //Set refresh token in secure cookie
@@ -76,9 +77,9 @@ export class AuthController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async register(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async register(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const payload = this.getPayloadFromContext<RegisterPostDto, unknown, unknown>();
+      const payload = getPublicPayloadFromContext<RegisterPostDto, unknown, unknown>();
       const result = await this.authService.signUp(payload);
       ResponseHandler.successResponse(res, result);
     } catch (error) {
@@ -92,7 +93,7 @@ export class AuthController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async fetchUserResult(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async fetchUserResult(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = UserContext.getUser();
       ResponseHandler.successResponse(res, result, 'user feteched sucessfully', 200);
@@ -135,7 +136,7 @@ export class AuthController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async logout(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const session = UserContext.getSession();
       const sessionId = session?.id;
@@ -159,7 +160,7 @@ export class AuthController {
     }
   }
 
-  googleOauth(req: Request, res: Response, next: NextFunction): void {
+  googleOauth(_req: Request, res: Response, next: NextFunction): void {
     try {
       const googleRedirectURI = this.googleService.getAuthUrl();
       res.redirect(googleRedirectURI);
@@ -235,9 +236,9 @@ export class AuthController {
     }
   }
 
-  async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async forgotPassword(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email } = req.body;
+      const { email } = getPublicPayloadFromContext<{ email: string }, unknown, unknown>();
       await this.authService.sendPasswordResetEmail(email);
       ResponseHandler.successResponse(res, null, 'Password reset email sent', 200);
     } catch (error) {
@@ -245,9 +246,13 @@ export class AuthController {
     }
   }
 
-  async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async resetPassword(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { token, newPassword } = req.body;
+      const { token, newPassword } = getPublicPayloadFromContext<
+        { token: string; newPassword: string },
+        unknown,
+        unknown
+      >();
       await this.authService.resetPassword(token, newPassword);
       ResponseHandler.successResponse(res, null, 'Password reset successfully', 200);
     } catch (error) {
@@ -255,9 +260,9 @@ export class AuthController {
     }
   }
 
-  async verifyToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async verifyToken(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { token } = req.body;
+      const { token } = getPublicPayloadFromContext<{ token: string }, unknown, unknown>();
       await this.authService.verifyPasswordResetToken(token);
       ResponseHandler.successResponse(res, null, 'Token is valid', 200);
     } catch (error) {
@@ -265,16 +270,20 @@ export class AuthController {
     }
   }
 
-  async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async verifyEmail(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { token, otp } = req.body;
+      const { token, otp } = getPublicPayloadFromContext<
+        { token: string; otp: string },
+        unknown,
+        unknown
+      >();
       await this.authService.verifyEmail(token, otp);
       ResponseHandler.successResponse(res, null, 'Email verified successfully', 200);
     } catch (error) {
       next(error);
     }
   }
-  async verifyAccessToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async verifyAccessToken(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!UserContext.getUser()) {
         return next(new BadRequestError(ErrorMessages.AUTH.INVALID_ACCESS_TOKEN));
@@ -283,19 +292,5 @@ export class AuthController {
     } catch (error) {
       next(error);
     }
-  }
-
-  private getPayloadFromContext<T, P, Q>(): T & { userId: string } {
-    const userId = UserContext.getUser()?.id;
-    const body = RequestContext.getBody<T>();
-    const params = RequestContext.getParams<P>();
-    const query = RequestContext.getQuery<Q>();
-
-    return {
-      ...(body ?? {}),
-      ...(params ?? {}),
-      ...(query ?? {}),
-      ...(userId ? { userId } : {}),
-    } as unknown as T & { userId: string };
   }
 }

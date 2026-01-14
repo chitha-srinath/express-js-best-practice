@@ -15,8 +15,7 @@ import { ResponseHandler } from '../Utilities/ResponseHandler';
 import { DatabaseError, NotFoundError } from '../Utilities/ErrorUtility';
 import { PrismaErrorHandler } from '../Utilities/databaseErrors';
 import { env } from '../config/config';
-import { RequestContext, UserContext } from '@/Utilities/user-context';
-import { ErrorMessages } from '@/constants/error-messages.constatnts';
+import { getPayloadFromContext } from '@/Utilities/payload';
 
 export class StorageController {
   private storageService: S3StorageService;
@@ -28,9 +27,13 @@ export class StorageController {
   /**
    * Generate a presigned URL for file upload
    */
-  generateUploadUrl = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  generateUploadUrl = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { fileName, contentType, bucket }: GenerateUploadUrlRequestDto = req.body;
+      const { fileName, contentType, bucket } = getPayloadFromContext<
+        GenerateUploadUrlRequestDto,
+        unknown,
+        unknown
+      >();
 
       // Generate a unique key for the file
       const key = this.storageService.generateUniqueKey(fileName);
@@ -70,12 +73,16 @@ export class StorageController {
    * Generate presigned URLs for multiple file uploads
    */
   generateMultipleUploadUrls = async (
-    req: Request,
+    _req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const { files, bucket }: GenerateMultipleUploadUrlsRequestDto = req.body;
+      const { files, bucket } = getPayloadFromContext<
+        GenerateMultipleUploadUrlsRequestDto,
+        unknown,
+        unknown
+      >();
 
       const uploadResponses: MultipleUploadResponseDto = {
         files: [],
@@ -122,13 +129,16 @@ export class StorageController {
    * Initiate a multipart upload for large files
    */
   initiateMultipartUpload = async (
-    req: Request,
+    _req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const { fileName, contentType, bucket, fileSize }: InitiateMultipartUploadRequestDto =
-        req.body;
+      const { fileName, contentType, bucket, fileSize } = getPayloadFromContext<
+        InitiateMultipartUploadRequestDto,
+        unknown,
+        unknown
+      >();
 
       // Generate a unique key for the file
       const key = this.storageService.generateUniqueKey(fileName);
@@ -166,12 +176,16 @@ export class StorageController {
    * Initiate multipart uploads for multiple large files
    */
   initiateMultipleMultipartUploads = async (
-    req: Request,
+    _req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const { files, bucket }: InitiateMultipleMultipartUploadsRequestDto = req.body;
+      const { files, bucket } = getPayloadFromContext<
+        InitiateMultipleMultipartUploadsRequestDto,
+        unknown,
+        unknown
+      >();
 
       const responses: Array<{ uploadId: string; key: string; fileRecord: unknown }> = [];
 
@@ -218,12 +232,16 @@ export class StorageController {
    * Generate a presigned URL for a specific part of a multipart upload
    */
   generateUploadPartUrl = async (
-    req: Request,
+    _req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const { bucket, key, uploadId, partNumber }: UploadPartUrlRequestDto = req.body;
+      const { bucket, key, uploadId, partNumber } = getPayloadFromContext<
+        UploadPartUrlRequestDto,
+        unknown,
+        unknown
+      >();
 
       // Generate presigned URL for upload part
       const uploadPartUrl = await this.storageService.generatePresignedUploadPartUrl({
@@ -260,12 +278,16 @@ export class StorageController {
    * Complete a multipart upload
    */
   completeMultipartUpload = async (
-    req: Request,
+    _req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const { bucket, key, uploadId, parts }: CompleteMultipartUploadRequestDto = req.body;
+      const { bucket, key, uploadId, parts } = getPayloadFromContext<
+        CompleteMultipartUploadRequestDto,
+        unknown,
+        unknown
+      >();
 
       // Complete multipart upload
       const result = await this.storageService.completeMultipartUpload(
@@ -296,10 +318,13 @@ export class StorageController {
   /**
    * Get upload progress for a multipart upload
    */
-  getUploadProgress = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getUploadProgress = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { uploadId } = req.params;
-      const { bucket, key } = req.query as { bucket: string; key: string };
+      const { uploadId, bucket, key } = getPayloadFromContext<
+        unknown,
+        { uploadId: string },
+        { bucket: string; key: string }
+      >();
 
       // Get upload progress
       const progress = await this.storageService.getUploadProgress(uploadId, bucket, key);
@@ -354,9 +379,13 @@ export class StorageController {
   /**
    * Generate a presigned URL for file download
    */
-  generateDownloadUrl = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  generateDownloadUrl = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { bucket, key } = req.params;
+      const { bucket, key } = getPayloadFromContext<
+        unknown,
+        { bucket: string; key: string },
+        unknown
+      >();
 
       const downloadUrl = await this.storageService.generateDownloadUrl({
         bucket,
@@ -379,22 +408,4 @@ export class StorageController {
       next(error);
     }
   };
-
-  private getPayloadFromContext<T, P, Q>(): T & { userId: string } {
-    const userId = UserContext.getUser()?.id;
-    if (!userId) {
-      throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
-    }
-
-    const body = RequestContext.getBody<T>();
-    const params = RequestContext.getParams<P>();
-    const query = RequestContext.getQuery<Q>();
-
-    return {
-      ...(body ?? {}),
-      ...(params ?? {}),
-      ...(query ?? {}),
-      userId,
-    } as unknown as T & { userId: string };
-  }
 }

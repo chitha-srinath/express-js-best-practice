@@ -5,7 +5,8 @@ import { PrismaErrorHandler } from '../Utilities/databaseErrors';
 import { UserService } from '../services/user.service';
 import { SuccessMessages } from '../constants/success-messages.constants';
 import { ErrorMessages } from '../constants/error-messages.constatnts';
-import { RequestContext, UserContext } from '@/Utilities/user-context';
+import { UpdateUserData } from '@/Dtos/user.dto';
+import { getPayloadFromContext } from '@/Utilities/payload';
 
 /**
  * Controller for user-related endpoints.
@@ -65,9 +66,9 @@ export class UserController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async getuserById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getuserById(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const { id } = getPayloadFromContext<unknown, { id: string }, unknown>();
       const user = await this.userService.getuserById(id);
       if (!user) {
         next(new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND));
@@ -85,10 +86,9 @@ export class UserController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async updateuser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async updateuser(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = req.params.id;
-      const data = req.body;
+      const { id, ...data } = getPayloadFromContext<UpdateUserData, { id: string }, unknown>();
       const user = await this.userService.updateuser(id, data);
       ResponseHandler.successResponse(res, user);
     } catch (error) {
@@ -105,9 +105,9 @@ export class UserController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async deleteuser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async deleteuser(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = req.params.id;
+      const { id } = getPayloadFromContext<unknown, { id: string }, unknown>();
       await this.userService.deleteuser(id);
       res.sendStatus(204);
     } catch (error) {
@@ -117,33 +117,16 @@ export class UserController {
 
   async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { oldPassword, newPassword } = req.body;
-      const user = UserContext.getUser();
-      if (!user?.id) {
-        return next(new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND));
-      }
-      await this.userService.changePassword(user.id, oldPassword, newPassword);
+      const { oldPassword, newPassword, userId } = getPayloadFromContext<
+        { oldPassword: string; newPassword: string },
+        unknown,
+        unknown
+      >();
+
+      await this.userService.changePassword(userId, oldPassword, newPassword);
       ResponseHandler.successResponse(res, null, 'Password changed successfully', 200);
     } catch (error) {
       next(error);
     }
-  }
-
-  private getPayloadFromContext<T, P, Q>(): T & { userId: string } {
-    const userId = UserContext.getUser()?.id;
-    if (!userId) {
-      throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
-    }
-
-    const body = RequestContext.getBody<T>();
-    const params = RequestContext.getParams<P>();
-    const query = RequestContext.getQuery<Q>();
-
-    return {
-      ...(body ?? {}),
-      ...(params ?? {}),
-      ...(query ?? {}),
-      userId,
-    } as unknown as T & { userId: string };
   }
 }

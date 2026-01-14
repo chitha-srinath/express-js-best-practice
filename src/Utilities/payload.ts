@@ -19,3 +19,15 @@ export function getPayloadFromContext<T, P, Q>(): T & P & Q & { userId: string }
     userId,
   } as unknown as T & P & Q & { userId: string };
 }
+
+export function getPublicPayloadFromContext<T, P, Q>(): T & P & Q {
+  const body = RequestContext.getBody<T>();
+  const params = RequestContext.getParams<P>();
+  const query = RequestContext.getQuery<Q>();
+
+  return {
+    ...(body ?? {}),
+    ...(params ?? {}),
+    ...(query ?? {}),
+  } as unknown as T & P & Q;
+}

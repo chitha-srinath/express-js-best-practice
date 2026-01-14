@@ -2,6 +2,7 @@ import { Post } from '@prisma/client';
 import { PostRepository } from '../repositories/post.repository';
 import { CreatePostData, UpdatePostData } from '@/Dtos/post.dto';
 import { NotFoundError } from '../Utilities/ErrorUtility';
+import { ErrorMessages } from '@/constants/error-messages.constatnts';
 
 /**
  * Service for post-related business logic.
@@ -52,21 +53,21 @@ export class PostService {
    */
   async getpostById(id: string): Promise<Post | null> {
     const result = await this.postRepository.findById(id);
+    if (!result) {
+      throw new NotFoundError(ErrorMessages.POST.POST_NOT_FOUND);
+    }
     return result;
   }
 
   /**
    * Updates an existing post with new data.
-   * @param id The unique identifier of the post to update
+   * @param id The unique identifier of the post to updat
    * @param data The new data to update the post with
    * @returns Promise resolving to the updated Post object
-   * @throws NotFoundError if the post with the given ID is not found
    */
   async updatepost(id: string, data: UpdatePostData): Promise<{ count: number }> {
+    await this.getpostById(id);
     const post = await this.postRepository.updateMany({ id }, data);
-    if (!post.count) {
-      throw new NotFoundError('Post not found');
-    }
     return post;
   }
 

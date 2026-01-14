@@ -5,8 +5,8 @@ import { PrismaErrorHandler } from '../Utilities/databaseErrors';
 import { PostService } from '../services/post.service';
 import { SuccessMessages } from '../constants/success-messages.constants';
 import { ErrorMessages } from '../constants/error-messages.constatnts';
-import { CreatePostData } from '../Dtos/post.dto';
-import { RequestContext, UserContext } from '@/Utilities/user-context';
+import { CreatePostData, UpdatePostData } from '../Dtos/post.dto';
+import { getPayloadFromContext } from '@/Utilities/payload';
 
 /**
  * Controller for post-related endpoints.
@@ -29,16 +29,9 @@ export class PostController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async createpost(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async createpost(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = UserContext.getUser()?.id;
-      if (!userId) {
-        throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
-      }
-      const payload: CreatePostData = {
-        ...req.body,
-        userId,
-      };
+      const payload = getPayloadFromContext<Omit<CreatePostData, 'userId'>, unknown, unknown>();
       const post = await this.postService.createpost(payload);
       ResponseHandler.successResponse(res, post, SuccessMessages.POST.CREATED, 201);
     } catch (error) {
@@ -55,7 +48,7 @@ export class PostController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async getAllposts(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getAllposts(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const posts = await this.postService.getAllposts();
       ResponseHandler.successResponse(res, posts, 'Fetched posts successfully', 200);
@@ -70,9 +63,9 @@ export class PostController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async getpostById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getpostById(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
+      const { id } = getPayloadFromContext<unknown, { id: string }, unknown>();
       const post = await this.postService.getpostById(id);
       if (!post) {
         next(new NotFoundError(ErrorMessages.POST.POST_NOT_FOUND));
@@ -90,10 +83,9 @@ export class PostController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async updatepost(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async updatepost(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = req.params.id;
-      const data = req.body;
+      const { id, ...data } = getPayloadFromContext<UpdatePostData, { id: string }, unknown>();
       const post = await this.postService.updatepost(id, data);
       ResponseHandler.successResponse(res, post);
     } catch (error) {
@@ -110,31 +102,13 @@ export class PostController {
    * @param res Express response object
    * @param next Express next function for error handling
    */
-  async deletepost(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async deletepost(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = req.params.id;
+      const { id } = getPayloadFromContext<unknown, { id: string }, unknown>();
       await this.postService.deletepost(id);
       res.sendStatus(204);
     } catch (error) {
       next(error);
     }
-  }
-
-  private getPayloadFromContext<T, P, Q>(): T & { userId: string } {
-    const userId = UserContext.getUser()?.id;
-    if (!userId) {
-      throw new NotFoundError(ErrorMessages.USER.USER_NOT_FOUND);
-    }
-
-    const body = RequestContext.getBody<T>();
-    const params = RequestContext.getParams<P>();
-    const query = RequestContext.getQuery<Q>();
-
-    return {
-      ...(body ?? {}),
-      ...(params ?? {}),
-      ...(query ?? {}),
-      userId,
-    } as unknown as T & { userId: string };
   }
 }
