@@ -19,7 +19,7 @@ export class EmailService {
             }
 
             await this.resend.emails.send({
-                from: 'srinath@example.com',
+                from: 'onboarding@resend.dev',
                 to: email,
                 subject: 'Verify your email',
                 react: <OTPEmail otpCode={otp} userName={username} />,
