@@ -59,6 +59,11 @@ export class AuthRoutes {
     );
 
     this.router.post('/verify-email', this.authController.verifyEmail.bind(this.authController));
+    this.router.post(
+      '/send-verification-email',
+      this.authController.sendVerificationEmail.bind(this.authController),
+    );
+
     this.router.get(
       '/verify-access-token',
       requireAuth,

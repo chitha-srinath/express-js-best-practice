@@ -272,13 +272,24 @@ export class AuthController {
 
   async verifyEmail(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { token, otp } = getPublicPayloadFromContext<
-        { token: string; otp: string },
+      const { email, code } = getPublicPayloadFromContext<
+        { email: string; code: string },
         unknown,
         unknown
       >();
-      await this.authService.verifyEmail(token, otp);
-      ResponseHandler.successResponse(res, null, 'Email verified successfully', 200);
+
+      const result = await this.authService.verifyEmail(email, code);
+      ResponseHandler.successResponse(res, { data: result }, 'Email verified successfully', 200);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async sendVerificationEmail(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = getPublicPayloadFromContext<{ email: string }, unknown, unknown>();
+      await this.authService.sendEmailVerification(email);
+      ResponseHandler.successResponse(res, null, 'Verification email sent successfully', 200);
     } catch (error) {
       next(error);
     }

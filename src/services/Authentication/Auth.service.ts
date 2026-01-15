@@ -5,6 +5,9 @@ import { randomUUID, randomInt } from 'node:crypto';
 import { UserRepository } from '../../repositories/user.repository';
 import { AccountRepository } from '../../repositories/account.repository';
 import { SessionRepository } from '../../repositories/session.repository';
+import { VerificationRepository } from '../../repositories/verification.repository';
+import { EmailService } from '../email.service';
+import { VerificationType } from '@prisma/client';
 
 /**
  * Service for authentication logic such as sign in, sign up, and access token retrieval.
@@ -13,11 +16,15 @@ export class AuthService {
   private readonly userRepository: UserRepository;
   private readonly accountRepository: AccountRepository;
   private readonly sessionRepository: SessionRepository;
+  private readonly verificationRepository: VerificationRepository;
+  private readonly emailService: EmailService;
 
   constructor() {
     this.userRepository = new UserRepository();
     this.accountRepository = new AccountRepository();
     this.sessionRepository = new SessionRepository();
+    this.verificationRepository = new VerificationRepository();
+    this.emailService = new EmailService();
   }
 
   /**
@@ -43,6 +50,10 @@ export class AuthService {
     const isValidPassword = await verifyPassword(data.password, passwordAccount.password);
     if (!isValidPassword) {
       throw new UnauthorizedError('Invalid email or password');
+    }
+
+    if (!user.emailVerified) {
+      throw new UnauthorizedError('Email not verified');
     }
 
     // Generate tokens
@@ -193,36 +204,79 @@ export class AuthService {
     // }
   }
 
-  async sendEmailVerification(_email: string): Promise<void> {
-    // step 1: find userid with email
-    // const user = await this.userRepository.findByEmail(email);
-    // if (!user) {
-    //   throw new NotFoundError('User not found');
-    // }
-    // step 1: check already any otp is sent
-    // const existingOtp = await this.userRepository.findEmailVerificationOtp(email);
-    // if (existingOtp) {
-    //   // If an OTP already exists, we can delete it
-    //   await this.userRepository.invalidateEmailVerificationOtp(existingOtp);
-    // }
-    // step 2: Generate email verification token
-    // const token = randomUUID();
-    // step 3: generate 6 digit otp
-    //const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    // step 4: Save token in database
-    // await this.userRepository.saveEmailVerificationToken(email, token, otp);
-    // step 5: Send email
-    // await this.emailService.sendEmailVerification(email, token, otp);
+  async sendEmailVerification(email: string): Promise<void> {
+    const user = await this.userRepository.findFirst({ email });
+    if (!user) {
+      throw new BadRequestError('User not found');
+    }
+
+    if (user.emailVerified) {
+      throw new BadRequestError('Email already verified');
+    }
+
+    // Ideally we might want to delete them or just let them expire.
+    // For cleaner strictness, let's delete previous ones or just add new one.
+    // Let's just create a new one.
+
+    const otp = this.generateOTP();
+
+    // The requirement says "verifyEmail" endpoint takes "code".
+    // And "The backend should identify the user based on the HTTP-only cookie".
+    // So we verify: match (userId, type=EMAIL_VERIFY, value=otp).
+
+    await this.verificationRepository.insert({
+      identifier: email,
+      value: otp,
+      type: VerificationType.EMAIL_VERIFY,
+      user: { connect: { id: user.id } },
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 mins
+    });
+
+    await this.emailService.sendEmailVerification(user.name, email, otp);
   }
 
-  async verifyEmail(_token: string, _otp: string): Promise<void> {
-    // step 1: Generate email verification token
-    // const userTokenDetails = await this.userRepository.validateEmailVerificationToken({userId, otp, token});
-    // if (!userTokenDetails) {
-    //   throw new UnauthorizedError('Invalid or expired email verification token');
-    // }
-    // step 2: update it that email is verified
-    // await this.userRepository.verifyEmail(email);
+  async verifyEmail(
+    email: string,
+    otp: string,
+  ): Promise<{ user: { id: string; email: string; username: string; isEmailVerified: boolean } }> {
+    const user = await this.userRepository.findFirst({ email });
+    if (!user) {
+      throw new BadRequestError('Register email for verification');
+    }
+
+    if (user.emailVerified) {
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.name,
+          isEmailVerified: true,
+        },
+      };
+    }
+
+    const verification = await this.verificationRepository.findValidVerification(
+      user.id,
+      VerificationType.EMAIL_VERIFY,
+    );
+
+    if (!verification || verification.value !== otp) {
+      throw new BadRequestError('Invalid or expired code');
+    }
+
+    const updatedUser = await this.userRepository.update({ id: user.id }, { emailVerified: true });
+
+    // Cleanup verification
+    await this.verificationRepository.deleteUnique({ id: verification.id });
+
+    return {
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        username: updatedUser.name,
+        isEmailVerified: updatedUser.emailVerified || false,
+      },
+    };
   }
 
   // Generate secure 6-digit OTP
