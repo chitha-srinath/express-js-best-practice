@@ -211,7 +211,16 @@ export class AuthService {
     }
 
     if (user.emailVerified) {
-      throw new BadRequestError('Email already verified');
+      return;
+    }
+
+    const existingVerifications = await this.verificationRepository.findAll({
+      userId: user.id,
+      type: VerificationType.EMAIL_VERIFY,
+    });
+
+    if (existingVerifications.length) {
+      return;
     }
 
     // Ideally we might want to delete them or just let them expire.
