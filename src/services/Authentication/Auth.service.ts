@@ -111,6 +111,7 @@ export class AuthService {
 
     // Create password account
     await this.accountRepository.createPasswordAccount(user.id, hashedPassword);
+    await this.sendEmailVerification(user.email);
 
     return 'user sign up sucessfully';
   }
