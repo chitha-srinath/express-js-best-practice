@@ -1,4 +1,5 @@
 import { Server, Socket } from 'socket.io';
+import { SocketEvents } from '../socket/constants/events';
 
 type SocketEvent = string;
 type SocketData = unknown;
@@ -21,7 +22,7 @@ export class RoomService {
    * @param socket The socket to join the room
    * @param roomId The room ID to join
    */
-  joinRoom(socket: Socket, roomId: string): void {
+  async joinRoom(socket: Socket, roomId: string): Promise<void> {
     if (!this.rooms.has(roomId)) {
       this.rooms.set(roomId, new Set());
     }
@@ -32,9 +33,9 @@ export class RoomService {
     room.add(socket.data.userId);
     socket.data.rooms.add(roomId);
 
-    socket.join(roomId);
+    await socket.join(roomId);
 
-    this.io.to(roomId).emit('room:joined', {
+    this.io.to(roomId).emit(SocketEvents.ROOM.JOINED, {
       roomId,
       users: Array.from(room),
     });
@@ -45,7 +46,7 @@ export class RoomService {
    * @param socket The socket to leave the room
    * @param roomId The room ID to leave
    */
-  leaveRoom(socket: Socket, roomId: string): void {
+  async leaveRoom(socket: Socket, roomId: string): Promise<void> {
     const room = this.rooms.get(roomId);
     if (!room) return;
 
@@ -56,9 +57,9 @@ export class RoomService {
       this.rooms.delete(roomId);
     }
 
-    socket.leave(roomId);
+    await socket.leave(roomId);
 
-    this.io.to(roomId).emit('room:left', {
+    this.io.to(roomId).emit(SocketEvents.ROOM.LEFT, {
       roomId,
       users: Array.from(room),
     });

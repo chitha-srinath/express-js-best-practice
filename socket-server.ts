@@ -4,6 +4,8 @@ import { Server } from 'http';
 import { RoomHandler } from './src/socket/handlers/RoomHandler';
 import { MessageHandler } from './src/socket/handlers/MessageHandler';
 import { ConnectionHandler } from './src/socket/handlers/ConnectionHandler';
+import { ISocketHandler } from './src/socket/interfaces/ISocketHandler';
+import { SocketEvents } from './src/socket/constants/events';
 
 /**
  * Socket.IO server class that handles real-time communication.
@@ -11,9 +13,7 @@ import { ConnectionHandler } from './src/socket/handlers/ConnectionHandler';
  */
 export class SocketServer {
   private roomService!: RoomService;
-  private roomHandler!: RoomHandler;
-  private messageHandler!: MessageHandler;
-  private connectionHandler!: ConnectionHandler;
+  private handlers: ISocketHandler[] = [];
   private io: socketServer;
 
   /**
@@ -26,9 +26,9 @@ export class SocketServer {
     this.roomService = new RoomService(this.io);
 
     // Initialize Handlers
-    this.roomHandler = new RoomHandler(this.roomService);
-    this.messageHandler = new MessageHandler(this.roomService);
-    this.connectionHandler = new ConnectionHandler(this.roomService);
+    this.handlers.push(new RoomHandler(this.roomService));
+    this.handlers.push(new MessageHandler(this.roomService));
+    this.handlers.push(new ConnectionHandler(this.roomService));
 
     this.setupSocketHandlers();
   }
@@ -38,26 +38,8 @@ export class SocketServer {
    * Handles socket lifecycle events and error scenarios.
    */
   private setupSocketHandlers(): void {
-    this.io.on('connection', (socket: Socket) => {
-      // Handle room joining
-      socket.on('room:join', (data: { roomId: string }) => {
-        this.roomHandler.handleJoinRoom(socket, data);
-      });
-
-      // Handle room leaving
-      socket.on('room:leave', (data: { roomId: string }) => {
-        this.roomHandler.handleLeaveRoom(socket, data);
-      });
-
-      // Handle messages
-      socket.on('message:send', (data: { message: string; roomId: string }) => {
-        this.messageHandler.handleSendMessage(socket, data);
-      });
-
-      // Handle disconnection
-      socket.on('disconnect', () => {
-        this.connectionHandler.handleDisconnect(socket);
-      });
+    this.io.on(SocketEvents.CONNECTION, (socket: Socket) => {
+      this.handlers.forEach((handler) => handler.handle(socket));
     });
   }
 }
