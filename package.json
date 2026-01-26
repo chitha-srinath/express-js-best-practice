@@ -15,7 +15,8 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "format-ts": "prettier --write \"**/*.ts\"",
     "format": "prettier --write .",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "start:prod": "npm run prisma:generate && npm run prisma:migrate && node dist/server.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.901.0",
