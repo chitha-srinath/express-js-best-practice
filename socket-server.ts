@@ -1,8 +1,9 @@
 import { Server as socketServer, Socket } from 'socket.io';
 import { RoomService } from './src/services/room.service';
 import { Server } from 'http';
-import { LoggerUtility } from './src/Utilities/LoggerUtility';
-import { prismaConnection } from './src/utils/database';
+import { RoomHandler } from './src/socket/handlers/RoomHandler';
+import { MessageHandler } from './src/socket/handlers/MessageHandler';
+import { ConnectionHandler } from './src/socket/handlers/ConnectionHandler';
 
 /**
  * Socket.IO server class that handles real-time communication.
@@ -10,8 +11,10 @@ import { prismaConnection } from './src/utils/database';
  */
 export class SocketServer {
   private roomService!: RoomService;
+  private roomHandler!: RoomHandler;
+  private messageHandler!: MessageHandler;
+  private connectionHandler!: ConnectionHandler;
   private io: socketServer;
-  private readonly logger = LoggerUtility.getInstance(prismaConnection);
 
   /**
    * Initializes the Socket.IO server with HTTP server and room service.
@@ -21,6 +24,12 @@ export class SocketServer {
   constructor(httpServer: Server) {
     this.io = new socketServer(httpServer);
     this.roomService = new RoomService(this.io);
+
+    // Initialize Handlers
+    this.roomHandler = new RoomHandler(this.roomService);
+    this.messageHandler = new MessageHandler(this.roomService);
+    this.connectionHandler = new ConnectionHandler(this.roomService);
+
     this.setupSocketHandlers();
   }
 
@@ -32,71 +41,22 @@ export class SocketServer {
     this.io.on('connection', (socket: Socket) => {
       // Handle room joining
       socket.on('room:join', (data: { roomId: string }) => {
-        try {
-          this.roomService.joinRoom(socket, data.roomId);
-        } catch (error) {
-          this.logger.error(
-            `Failed to join room: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          );
-          socket.emit('error', {
-            message: 'Failed to join room',
-            code: 'ROOM_JOIN_ERROR',
-          });
-        }
+        this.roomHandler.handleJoinRoom(socket, data);
       });
 
       // Handle room leaving
       socket.on('room:leave', (data: { roomId: string }) => {
-        try {
-          this.roomService.leaveRoom(socket, data.roomId);
-        } catch (error) {
-          this.logger.error(
-            `Failed to leave room: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          );
-          socket.emit('error', {
-            message: 'Failed to leave room',
-            code: 'ROOM_LEAVE_ERROR',
-          });
-        }
+        this.roomHandler.handleLeaveRoom(socket, data);
       });
 
       // Handle messages
       socket.on('message:send', (data: { message: string; roomId: string }) => {
-        try {
-          const messageData = {
-            message: data.message,
-            from: socket.data.userId,
-            timestamp: Date.now(),
-          };
-
-          this.roomService.broadcastToRoom(data.roomId, 'message:receive', messageData);
-        } catch (error) {
-          this.logger.error(
-            `Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          );
-          socket.emit('error', {
-            message: 'Failed to send message',
-            code: 'MESSAGE_SEND_ERROR',
-          });
-        }
+        this.messageHandler.handleSendMessage(socket, data);
       });
 
       // Handle disconnection
       socket.on('disconnect', () => {
-        try {
-          // Leave all rooms
-          if (socket.data.rooms) {
-            socket.data.rooms.forEach((roomId: string) => {
-              this.roomService.leaveRoom(socket, roomId);
-            });
-          }
-        } catch (error) {
-          this.logger.error(
-            `Error during socket disconnect: ${
-              error instanceof Error ? error.message : 'Unknown error'
-            }`,
-          );
-        }
+        this.connectionHandler.handleDisconnect(socket);
       });
     });
   }
