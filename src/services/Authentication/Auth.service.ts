@@ -1,7 +1,7 @@
 import { LoginPostDto, RegisterPostDto } from '../../Dtos/auth.dto';
 import { hashPassword, verifyPassword, generateJwtToken } from '../../Utilities/encrypt-hash';
 import { UnauthorizedError, BadRequestError } from '../../Utilities/ErrorUtility';
-import { randomUUID, randomInt } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { UserRepository } from '../../repositories/user.repository';
 import { AccountRepository } from '../../repositories/account.repository';
 import { SessionRepository } from '../../repositories/session.repository';
@@ -12,6 +12,9 @@ import { VerificationType } from '@prisma/client';
 /**
  * Service for authentication logic such as sign in, sign up, and access token retrieval.
  */
+import { appEventEmitter } from '../../events/event-emitter';
+import { AuthEvents } from '../../events/auth.events';
+
 export class AuthService {
   private readonly userRepository: UserRepository;
   private readonly accountRepository: AccountRepository;
@@ -111,7 +114,13 @@ export class AuthService {
 
     // Create password account
     await this.accountRepository.createPasswordAccount(user.id, hashedPassword);
-    await this.sendEmailVerification(user.email);
+
+    // Emit event for email verification
+    appEventEmitter.emit(AuthEvents.USER_REGISTERED, {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    });
 
     return 'user sign up sucessfully';
   }
@@ -215,34 +224,12 @@ export class AuthService {
       return;
     }
 
-    const existingVerifications = await this.verificationRepository.findAll({
-      userId: user.id,
-      type: VerificationType.EMAIL_VERIFY,
+    // Emit event for email verification
+    appEventEmitter.emit(AuthEvents.USER_REGISTERED, {
+      id: user.id,
+      email: user.email,
+      name: user.name,
     });
-
-    if (existingVerifications.length) {
-      return;
-    }
-
-    // Ideally we might want to delete them or just let them expire.
-    // For cleaner strictness, let's delete previous ones or just add new one.
-    // Let's just create a new one.
-
-    const otp = this.generateOTP();
-
-    // The requirement says "verifyEmail" endpoint takes "code".
-    // And "The backend should identify the user based on the HTTP-only cookie".
-    // So we verify: match (userId, type=EMAIL_VERIFY, value=otp).
-
-    await this.verificationRepository.insert({
-      identifier: email,
-      value: otp,
-      type: VerificationType.EMAIL_VERIFY,
-      user: { connect: { id: user.id } },
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 mins
-    });
-
-    await this.emailService.sendEmailVerification(user.name, email, otp);
   }
 
   async verifyEmail(
@@ -287,11 +274,5 @@ export class AuthService {
         isEmailVerified: updatedUser.emailVerified || false,
       },
     };
-  }
-
-  // Generate secure 6-digit OTP
-  generateOTP(): string {
-    const otp = randomInt(100000, 1000000); // ensures always 6 digits
-    return otp.toString();
   }
 }
