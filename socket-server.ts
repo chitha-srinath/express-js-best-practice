@@ -22,7 +22,7 @@ export class SocketServer {
    * @param httpServer The HTTP server instance to attach Socket.IO to
    */
   constructor(httpServer: Server) {
-    this.io = new socketServer(httpServer);
+    this.io = new socketServer(httpServer, { path: '/socket' });
     this.roomService = new RoomService(this.io);
 
     // Initialize Handlers
